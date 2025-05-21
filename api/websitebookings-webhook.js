@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       JobDate,
       PropertyAddress,
       CompanyName,
+      CompanyName2,
       JobType,
       NoOfBedrooms,
       PropertyType,
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       date: { date: JobDate },
       text05: PropertyAddress?.FullAddress || "",
       status_1: { label: CompanyName },
+      text17: CompanyName2 || "", // ✅ Added field
       job_type: { label: JobType },
       no__bedrooms: NoOfBedrooms?.toString() || "",
       text0: PropertyType,
