@@ -77,7 +77,8 @@ export default async function handler(req, res) {
     let boardId = DEFAULT_BOARD_ID;
 
     if (
-      AreYouAFranchiseeBookingOnBehalfOfTheAgent?.toLowerCase() === "yes" &&
+      if (
+      AreYouAFranchiseeBookingOnBehalfOfTheAgent?.Choice?.toLowerCase() === "yes" &&
       JobBookedOnBehalfOfTheAgentBy &&
       franchiseBoardMap[JobBookedOnBehalfOfTheAgentBy]
     ) {
