@@ -64,7 +64,11 @@ export default async function handler(req, res) {
 
     const columnValues = {
       date: { date: JobDate },
-      text05: PropertyAddress?.FullAddress || "",
+      text05: [
+        PropertyAddress?.Street,
+        PropertyAddress?.City,
+        PropertyAddress?.PostalCode
+      ].filter(Boolean).join(', '),
       status_1: { label: CompanyName },
       text17: CompanyName2 || "",
       job_type: { label: JobType },
