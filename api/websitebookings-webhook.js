@@ -18,11 +18,8 @@ export default async function handler(req, res) {
 
   try {
     const submission = req.body;
-
-    // Log raw values for debugging
     console.log("👉 Raw submission:", JSON.stringify(submission, null, 2));
 
-    // Extract fields
     const {
       BookingReference,
       JobDate,
@@ -49,10 +46,8 @@ export default async function handler(req, res) {
 
     const itemName = `${BookingReference}`;
 
-    // ✅ Determine board ID dynamically
+    // Determine board ID
     let boardId = MAIN_BOARD_ID;
-
-    // Safely extract answer (handles both string and object format)
     const franchiseeAnswer =
       typeof AreYouAFranchiseeBookingOnBehalfOfTheAgent === "string"
         ? AreYouAFranchiseeBookingOnBehalfOfTheAgent.toLowerCase()
@@ -67,12 +62,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ Build column values
     const columnValues = {
       date: { date: JobDate },
       text05: PropertyAddress?.FullAddress || "",
       status_1: { label: CompanyName },
-      text17: CompanyName2 || "", // Added CompanyName2
+      text17: CompanyName2 || "",
       job_type: { label: JobType },
       no__bedrooms: NoOfBedrooms?.toString() || "",
       text0: PropertyType,
@@ -89,12 +83,10 @@ export default async function handler(req, res) {
       numbers2: parseFloat(Price?.replace(/[^0-9.]/g, "")) || 0
     };
 
-    // Remove nulls or undefined
     Object.keys(columnValues).forEach(
       key => columnValues[key] == null && delete columnValues[key]
     );
 
-    // GraphQL mutation
     const query = `
       mutation {
         create_item(
@@ -108,7 +100,6 @@ export default async function handler(req, res) {
       }
     `;
 
-    // Send to Monday.com
     const response = await fetch("https://api.monday.com/v2", {
       method: "POST",
       headers: {
@@ -122,18 +113,16 @@ export default async function handler(req, res) {
     console.log("📬 Monday.com response:", JSON.stringify(data, null, 2));
 
     if (data.errors) {
-      return res.status(500).json({
-        message: "Monday.com API error",
-        errors: data.errors
-      });
+      return res.status(500).json({ message: "Monday.com API error", errors: data.errors });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "✅ Item successfully created in Monday.com",
       itemId: data.data.create_item.id
     });
+
   } catch (error) {
     console.error("❌ Error:", error);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 }
