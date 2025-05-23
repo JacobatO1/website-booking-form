@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       text1: LeadTenantName?.FirstAndLast || "",
       email9: { email: LeadTenantEmail, text: LeadTenantEmail },
       phone: { phone: LeadTenantPhone, countryShortName: "GB" },
-      numbers2: parseFloat(Price?.replace(/[^0-9.]/g, "")) || 0
+      numbers2: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0
     };
 
     Object.keys(columnValues).forEach(
