@@ -1,14 +1,11 @@
 const MONDAY_API_KEY = process.env.MONDAY_API_KEY;
 
-// Default board and group
 const MAIN_BOARD_ID = 1556561593;
 const MONDAY_GROUP_ID = "topics";
 
-// Franchisee board mapping (replace with real values when ready)
 const FRANCHISEE_BOARDS = {
   "Franchisee A": 1234567890,
   "Franchisee B": 9876543210,
-  // Add more mappings here
 };
 
 export default async function handler(req, res) {
@@ -46,7 +43,6 @@ export default async function handler(req, res) {
 
     const itemName = `${BookingReference}`;
 
-    // Determine board ID
     let boardId = MAIN_BOARD_ID;
     const franchiseeAnswer =
       typeof AreYouAFranchiseeBookingOnBehalfOfTheAgent === "string"
@@ -91,39 +87,93 @@ export default async function handler(req, res) {
       key => columnValues[key] == null && delete columnValues[key]
     );
 
-    const query = `
-      mutation {
-        create_item(
+    // 🔍 Check if item exists
+    const searchQuery = `
+      query {
+        items_by_column_values(
           board_id: ${boardId},
-          group_id: "${MONDAY_GROUP_ID}",
-          item_name: "${itemName.replace(/"/g, '\\"')}",
-          column_values: "${JSON.stringify(columnValues).replace(/"/g, '\\"')}"
+          column_id: "name",
+          column_value: "${itemName.replace(/"/g, '\\"')}"
         ) {
           id
         }
       }
     `;
 
-    const response = await fetch("https://api.monday.com/v2", {
+    const searchResponse = await fetch("https://api.monday.com/v2", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: MONDAY_API_KEY
       },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query: searchQuery })
     });
 
-    const data = await response.json();
-    console.log("📬 Monday.com response:", JSON.stringify(data, null, 2));
+    const searchData = await searchResponse.json();
+    const existingItem = searchData?.data?.items_by_column_values?.[0];
 
-    if (data.errors) {
-      return res.status(500).json({ message: "Monday.com API error", errors: data.errors });
+    if (existingItem) {
+      // ✏️ Update existing item
+      const updateQuery = `
+        mutation {
+          change_column_values(
+            board_id: ${boardId},
+            item_id: ${existingItem.id},
+            column_values: "${JSON.stringify(columnValues).replace(/"/g, '\\"')}"
+          ) {
+            id
+          }
+        }
+      `;
+
+      const updateResponse = await fetch("https://api.monday.com/v2", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: MONDAY_API_KEY
+        },
+        body: JSON.stringify({ query: updateQuery })
+      });
+
+      const updateData = await updateResponse.json();
+      console.log("✏️ Updated item:", JSON.stringify(updateData, null, 2));
+
+      return res.status(200).json({
+        message: "✅ Item successfully updated in Monday.com",
+        itemId: updateData.data.change_column_values.id
+      });
+    } else {
+      // ➕ Create new item
+      const createQuery = `
+        mutation {
+          create_item(
+            board_id: ${boardId},
+            group_id: "${MONDAY_GROUP_ID}",
+            item_name: "${itemName.replace(/"/g, '\\"')}",
+            column_values: "${JSON.stringify(columnValues).replace(/"/g, '\\"')}"
+          ) {
+            id
+          }
+        }
+      `;
+
+      const createResponse = await fetch("https://api.monday.com/v2", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: MONDAY_API_KEY
+        },
+        body: JSON.stringify({ query: createQuery })
+      });
+
+      const createData = await createResponse.json();
+      console.log("➕ Created new item:", JSON.stringify(createData, null, 2));
+
+      return res.status(200).json({
+        message: "✅ New item successfully created in Monday.com",
+        itemId: createData.data.create_item.id
+      });
     }
-
-    return res.status(200).json({
-      message: "✅ Item successfully created in Monday.com",
-      itemId: data.data.create_item.id
-    });
 
   } catch (error) {
     console.error("❌ Error:", error);
