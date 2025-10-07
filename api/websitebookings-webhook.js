@@ -1,6 +1,6 @@
-const MONDAY_API_KEY = process.env.MONDAY_API_KEY;
+const MONDAY_API_KEY = process.env.MONDAY_FRANCHISE_API_KEY;
 
-const MAIN_BOARD_ID = 1556561593;
+const MAIN_BOARD_ID = 2046517792;
 const MONDAY_GROUP_ID = "topics";
 
 const FRANCHISEE_BOARDS = {
