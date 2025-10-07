@@ -21,9 +21,9 @@ export default async function handler(req, res) {
       BookingReference,
       JobDate,
       PropertyAddress,
-      CompanyName,
-      CompanyName2,
-      JobType,
+      EstateAgency,
+      EstateAgency2,
+      BookingType,
       NoOfBedrooms,
       PropertyType,
       PropertyAvailableDate,
@@ -59,29 +59,30 @@ export default async function handler(req, res) {
     }
 
     const columnValues = {
-      date: { date: JobDate },
-      text05: [
+      date_mkvmvx73: { date: JobDate },
+      text_mkvmjq0e: [
         PropertyAddress?.Line1,
         PropertyAddress?.City,
         PropertyAddress?.PostalCode
       ].filter(Boolean).join(', '),
-      status_1: { label: CompanyName },
-      text17: CompanyName2 || "",
-      job_type: { label: JobType },
-      no__bedrooms: NoOfBedrooms?.toString() || "",
-      text0: PropertyType,
-      date5: PropertyAvailableDate ? { date: PropertyAvailableDate } : null,
-      date1: StartOfTenancy ? { date: StartOfTenancy } : null,
+      color_mkvmxaw7: { label: EstateAgency },
+      text_mkvn2yd1: EstateAgency2 || "",
+      color_mkvta8zc: { label: BookingType },
+      numeric_mkvng45g: NoOfBedrooms?.toString() || "",
+      text_mkvn9w2j: PropertyType,
+      date_mkvna7n0: PropertyAvailableDate ? { date: PropertyAvailableDate } : null,
+      date_mkvn9hrb: StartOfTenancy ? { date: StartOfTenancy } : null,
       numbers23: Id?.toString() || "",
-      long_text: { text: Comments || "" },
-      text: AgentsName,
-      email: { email: AgentsEmail, text: AgentsEmail },
-      text33: LettingType,
-      text1: LeadTenantName?.FirstAndLast || "",
-      email9: { email: LeadTenantEmail, text: LeadTenantEmail },
-      phone: { phone: LeadTenantPhone, countryShortName: "GB" },
-      numbers2: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0
-    };
+      text_mkvn7ezz: { text: Comments || "" },
+      text_mkvnwr1x: AgentsName,
+      email_mkvnbepp: { email: AgentsEmail, text: AgentsEmail },
+      text_mkvnw80g: LettingType,
+      text_mkvndvdh: LeadTenantName?.FirstAndLast || "",
+      email_mkvnphs3: { email: LeadTenantEmail, text: LeadTenantEmail },
+      phone_mkvn19xx: { phone: LeadTenantPhone, countryShortName: "GB" },
+      numeric_mkvnx5tt: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0 },
+      color_mkvmmvy7: JobBookedOnBehalfOfTheAgentBy
+      };
 
     Object.keys(columnValues).forEach(
       key => columnValues[key] == null && delete columnValues[key]
