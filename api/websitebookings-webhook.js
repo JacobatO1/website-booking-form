@@ -7,6 +7,7 @@ const FRANCHISEE_BOARDS = {
   "Franchisee A": 1234567890,
   "Franchisee B": 9876543210,
 };
+console.log("Monday API Token exists:", !!mondayApiToken);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
