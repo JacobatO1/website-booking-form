@@ -1,57 +1,59 @@
-const MONDAY_API_KEY = process.env.MONDAY_FRANCHISE_API_KEY;
+// --- CONFIGURATION CONSTANTS ---
 
+// 1. Standardized API Key: Ensure MONDAY_API_KEY is set in Vercel Environment Variables.
+const MONDAY_API_KEY = process.env.MONDAY_API_KEY; 
+
+// 2. Board IDs
 const MAIN_BOARD_ID = 2046517792;
 const MONDAY_GROUP_ID = "topics";
 
 const FRANCHISEE_BOARDS = {
-  "Franchisee A": 1234567890,
-  "Franchisee B": 9876543210,
+  "Franchisee A": 1234567890, // UPDATE WITH CORRECT BOARD ID
+  "Franchisee B": 9876543210, // UPDATE WITH CORRECT BOARD ID
 };
 
-module.exports = async (req, res) => {
-  try {
-    console.log("Monday API Token exists:", !!MONDAY_API_KEY);
-    module.exports = async function handler(req, res) {
-  try {
-    console.log("✅ Webhook received request");
-    console.log("Request body:", req.body);
 
-    // Your Monday API token check
-    const mondayToken = process.env.MONDAY_API_TOKEN;
-    console.log("Monday token loaded:", !!mondayToken);
+// --- HELPER FUNCTION FOR MONDAY API CALLS ---
 
-    // Example Monday API call
-    const response = await fetch("https://api.monday.com/v2", {
-      method: "POST",
-      headers: {
-        "Authorization": mondayToken,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-          mutation {
-            create_item (
-              board_id: YOUR_BOARD_ID,
-              group_id: "topics",
-              item_name: "Webhook Test Entry"
-            ) {
-              id
-            }
-          }
-        `
-      }),
-    });
+/**
+ * Executes a GraphQL query/mutation against the monday.com API.
+ * @param {string} query The GraphQL string.
+ * @returns {Promise<object>} The JSON response data from monday.com.
+ */
+const mondayCall = async (query) => {
+  const response = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: MONDAY_API_KEY // Uses the standardized API Key
+    },
+    body: JSON.stringify({ query })
+  });
 
-    const data = await response.json();
-    console.log("Monday API response:", data);
-
-    res.status(200).json({ success: true, mondayResponse: data });
-  } catch (error) {
-    console.error("❌ Error posting to Monday:", error);
-    res.status(500).json({ error: error.message });
+  const data = await response.json();
+  
+  // LOG Monday API Errors if they exist
+  if (data.errors) {
+    console.error("❌ Monday API returned errors:", JSON.stringify(data.errors, null, 2));
+    // Throw an error to be caught by the main try/catch block
+    throw new Error(`Monday API Error: ${data.errors[0].message}`);
   }
-}
-    
+  
+  return data;
+};
+
+
+// --- VERCEL SERVERLESS HANDLER ---
+
+// This is the single, correct CommonJS export for Vercel.
+module.exports = async (req, res) => {
+  
+  // Basic Health/Security Checks
+  if (!MONDAY_API_KEY) {
+    console.error("❌ MONDAY_API_KEY environment variable is not set!");
+    return res.status(500).json({ message: "Server configuration error: Missing API Key." });
+  }
+
   if (req.method === "GET") {
     return res.status(200).json({ message: "✅ Webhook online" });
   }
@@ -60,10 +62,12 @@ module.exports = async (req, res) => {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
+  // Main Logic Block wrapped in a single try/catch
   try {
     const submission = req.body;
-    console.log("👉 Raw submission:", JSON.stringify(submission, null, 2));
+    console.log("👉 Raw submission received.");
 
+    // Destructuring Cognito Forms Data
     const {
       BookingReference,
       JobDate,
@@ -90,6 +94,7 @@ module.exports = async (req, res) => {
 
     const itemName = `${BookingReference}`;
 
+    // 1. Determine Board ID (Franchisee Logic)
     let boardId = MAIN_BOARD_ID;
     const franchiseeAnswer =
       typeof AreYouAFranchiseeBookingOnBehalfOfTheAgent === "string"
@@ -105,6 +110,7 @@ module.exports = async (req, res) => {
       }
     }
 
+    // 2. Prepare Column Values (Check all column IDs against your NEW Monday.com Board)
     const columnValues = {
       date_mkvmvx73: { date: JobDate },
       text_mkvmjq0e: [
@@ -131,11 +137,14 @@ module.exports = async (req, res) => {
       color_mkvmmvy7: JobBookedOnBehalfOfTheAgentBy
     };
 
+    // Remove null/undefined values before JSON stringify
     Object.keys(columnValues).forEach(
       key => columnValues[key] == null && delete columnValues[key]
     );
 
-    // 🔍 Check if item exists
+    const stringifiedColumnValues = JSON.stringify(columnValues).replace(/"/g, '\\"');
+
+    // 3. Search for Existing Item (Uses the new mondayCall helper)
     const searchQuery = `
       query {
         items_by_column_values(
@@ -148,74 +157,47 @@ module.exports = async (req, res) => {
       }
     `;
 
-    const searchResponse = await fetch("https://api.monday.com/v2", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: MONDAY_API_KEY
-      },
-      body: JSON.stringify({ query: searchQuery })
-    });
-
-    const searchData = await searchResponse.json();
+    const searchData = await mondayCall(searchQuery);
     const existingItem = searchData?.data?.items_by_column_values?.[0];
 
     if (existingItem) {
-      // ✏️ Update existing item
+      // 4a. Update existing item
       const updateQuery = `
         mutation {
           change_column_values(
             board_id: ${boardId},
             item_id: ${existingItem.id},
-            column_values: "${JSON.stringify(columnValues).replace(/"/g, '\\"')}"
+            column_values: "${stringifiedColumnValues}"
           ) {
             id
           }
         }
       `;
 
-      const updateResponse = await fetch("https://api.monday.com/v2", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: MONDAY_API_KEY
-        },
-        body: JSON.stringify({ query: updateQuery })
-      });
-
-      const updateData = await updateResponse.json();
-      console.log("✏️ Updated item:", JSON.stringify(updateData, null, 2));
+      const updateData = await mondayCall(updateQuery);
+      console.log("✏️ Updated item:", updateData.data.change_column_values.id);
 
       return res.status(200).json({
         message: "✅ Item successfully updated in Monday.com",
         itemId: updateData.data.change_column_values.id
       });
     } else {
-      // ➕ Create new item
+      // 4b. Create new item
       const createQuery = `
         mutation {
           create_item(
             board_id: ${boardId},
             group_id: "${MONDAY_GROUP_ID}",
             item_name: "${itemName.replace(/"/g, '\\"')}",
-            column_values: "${JSON.stringify(columnValues).replace(/"/g, '\\"')}"
+            column_values: "${stringifiedColumnValues}"
           ) {
             id
           }
         }
       `;
 
-      const createResponse = await fetch("https://api.monday.com/v2", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: MONDAY_API_KEY
-        },
-        body: JSON.stringify({ query: createQuery })
-      });
-
-      const createData = await createResponse.json();
-      console.log("➕ Created new item:", JSON.stringify(createData, null, 2));
+      const createData = await mondayCall(createQuery);
+      console.log("➕ Created new item:", createData.data.create_item.id);
 
       return res.status(200).json({
         message: "✅ New item successfully created in Monday.com",
@@ -223,7 +205,8 @@ module.exports = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("❌ Error:", error);
+    // This catches both internal errors AND errors thrown by mondayCall
+    console.error("❌ Fatal Error in Webhook:", error.message);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
