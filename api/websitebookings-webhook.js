@@ -8,12 +8,12 @@ const FRANCHISEE_BOARDS = {
   "Franchisee B": 9876543210,
 };
 
-console.log("MONDAY_FRANCHISE_API_KEY exists:", !!MONDAY_FRANCHISE_API_KEY);
+console.log("Monday API Token exists:", !!MONDAY_API_KEY);
 
 module.exports = async (req, res) => {
-if (req.method === "GET") {
-  return res.status(200).json({ message: "✅ Webhook online" });
-}
+  if (req.method === "GET") {
+    return res.status(200).json({ message: "✅ Webhook online" });
+  }
 
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
@@ -70,7 +70,7 @@ if (req.method === "GET") {
         PropertyAddress?.Line1,
         PropertyAddress?.City,
         PropertyAddress?.PostalCode
-      ].filter(Boolean).join(', '),
+      ].filter(Boolean).join(", "),
       color_mkvmxaw7: { label: EstateAgency },
       text_mkvn2yd1: EstateAgency2 || "",
       color_mkvta8zc: { label: BookingType },
@@ -88,7 +88,7 @@ if (req.method === "GET") {
       phone_mkvn19xx: { phone: LeadTenantPhone, countryShortName: "GB" },
       numeric_mkvnx5tt: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0,
       color_mkvmmvy7: JobBookedOnBehalfOfTheAgentBy
-      };
+    };
 
     Object.keys(columnValues).forEach(
       key => columnValues[key] == null && delete columnValues[key]
@@ -181,9 +181,8 @@ if (req.method === "GET") {
         itemId: createData.data.create_item.id
       });
     }
-
   } catch (error) {
     console.error("❌ Error:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
-}
+};
