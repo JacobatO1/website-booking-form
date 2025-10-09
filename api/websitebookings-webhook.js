@@ -11,7 +11,7 @@ const FRANCHISEE_BOARDS = {
 module.exports = async (req, res) => {
   try {
     console.log("Monday API Token exists:", !!MONDAY_API_KEY);
-    export default async function handler(req, res) {
+    module.exports = async function handler(req, res) {
   try {
     console.log("✅ Webhook received request");
     console.log("Request body:", req.body);
