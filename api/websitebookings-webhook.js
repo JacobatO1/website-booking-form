@@ -1,7 +1,7 @@
 // --- CONFIGURATION CONSTANTS ---
 
 // 1. Standardized API Key: Ensure MONDAY_API_KEY is set in Vercel Environment Variables.
-const MONDAY_API_KEY = process.env.MONDAY_API_KEY; 
+const MONDAY_API_KEY = process.env.MONDAY_FRANCHISE_API_KEY; 
 
 // 2. Board IDs
 const MAIN_BOARD_ID = 2046517792;
