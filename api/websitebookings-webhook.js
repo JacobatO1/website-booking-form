@@ -8,9 +8,50 @@ const FRANCHISEE_BOARDS = {
   "Franchisee B": 9876543210,
 };
 
-console.log("Monday API Token exists:", !!MONDAY_API_KEY);
-
 module.exports = async (req, res) => {
+  try {
+    console.log("Monday API Token exists:", !!MONDAY_API_KEY);
+    export default async function handler(req, res) {
+  try {
+    console.log("✅ Webhook received request");
+    console.log("Request body:", req.body);
+
+    // Your Monday API token check
+    const mondayToken = process.env.MONDAY_API_TOKEN;
+    console.log("Monday token loaded:", !!mondayToken);
+
+    // Example Monday API call
+    const response = await fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: {
+        "Authorization": mondayToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          mutation {
+            create_item (
+              board_id: YOUR_BOARD_ID,
+              group_id: "topics",
+              item_name: "Webhook Test Entry"
+            ) {
+              id
+            }
+          }
+        `
+      }),
+    });
+
+    const data = await response.json();
+    console.log("Monday API response:", data);
+
+    res.status(200).json({ success: true, mondayResponse: data });
+  } catch (error) {
+    console.error("❌ Error posting to Monday:", error);
+    res.status(500).json({ error: error.message });
+  }
+}
+    
   if (req.method === "GET") {
     return res.status(200).json({ message: "✅ Webhook online" });
   }
