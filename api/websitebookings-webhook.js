@@ -7,9 +7,14 @@ const FRANCHISEE_BOARDS = {
   "Franchisee A": 1234567890,
   "Franchisee B": 9876543210,
 };
-console.log("Monday API Token exists:", !!mondayApiToken);
 
-export default async function handler(req, res) {
+console.log("MONDAY_FRANCHISE_API_KEY exists:", !!MONDAY_FRANCHISE_API_KEY);
+
+module.exports = async (req, res) => {
+if (req.method === "GET") {
+  return res.status(200).json({ message: "✅ Webhook online" });
+}
+
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
       text_mkvndvdh: LeadTenantName?.FirstAndLast || "",
       email_mkvnphs3: { email: LeadTenantEmail, text: LeadTenantEmail },
       phone_mkvn19xx: { phone: LeadTenantPhone, countryShortName: "GB" },
-      numeric_mkvnx5tt: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0 },
+      numeric_mkvnx5tt: Price ? parseFloat(Price.replace(/[^0-9.]/g, "")) : 0,
       color_mkvmmvy7: JobBookedOnBehalfOfTheAgentBy
       };
 
