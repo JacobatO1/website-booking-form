@@ -142,7 +142,21 @@ module.exports = async (req, res) => {
       key => columnValues[key] == null && delete columnValues[key]
     );
 
-    const stringifiedColumnValues = JSON.stringify(columnValues).replace(/"/g, '\\"');
+    // ... after Object.keys(columnValues).forEach(...)
+// ...
+
+// Use a cleaner function to handle all necessary escapes for GraphQL string arguments
+const escapeGraphQLString = (str) => {
+    if (!str) return "";
+    return str
+        .replace(/"/g, '\\"')   // Escape double quotes
+        .replace(/\//g, '\\/')   // ADDED: Escape forward slashes
+        .replace(/\n/g, '\\n'); // Optional but recommended: Escape newlines
+};
+
+// Apply escaping to your dynamic data
+const stringifiedColumnValues = escapeGraphQLString(JSON.stringify(columnValues));
+const escapedItemName = escapeGraphQLString(itemName);
 
     // 3. Search for Existing Item (Uses the new mondayCall helper)
     // New, required query name:
@@ -151,7 +165,7 @@ const searchQuery = `
     items_page_by_column_values( 
       board_id: ${boardId},
       column_id: "name",
-      column_value: "${itemName.replace(/"/g, '\\"')}"
+      column_value: "${escapedItemName}"
     ) {
       items { // <-- Monday now returns a 'page' object containing an 'items' array
         id
@@ -191,7 +205,7 @@ const searchQuery = `
           create_item(
             board_id: ${boardId},
             group_id: "${MONDAY_GROUP_ID}",
-            item_name: "${itemName.replace(/"/g, '\\"')}",
+            item_name: "${escapedItemName}",
             column_values: "${stringifiedColumnValues}"
           ) {
             id
