@@ -145,20 +145,23 @@ module.exports = async (req, res) => {
     const stringifiedColumnValues = JSON.stringify(columnValues).replace(/"/g, '\\"');
 
     // 3. Search for Existing Item (Uses the new mondayCall helper)
-    const searchQuery = `
-      query {
-        items_by_column_values(
-          board_id: ${boardId},
-          column_id: "name",
-          column_value: "${itemName.replace(/"/g, '\\"')}"
-        ) {
-          id
-        }
+    // New, required query name:
+const searchQuery = `
+  query {
+    items_page_by_column_values( 
+      board_id: ${boardId},
+      column_id: "name",
+      column_value: "${itemName.replace(/"/g, '\\"')}"
+    ) {
+      items { // <-- Monday now returns a 'page' object containing an 'items' array
+        id
       }
-    `;
+    }
+  }
+`;
 
     const searchData = await mondayCall(searchQuery);
-    const existingItem = searchData?.data?.items_by_column_values?.[0];
+    const existingItem = searchData?.data?.items_page_by_column_values?.items?.[0];
 
     if (existingItem) {
       // 4a. Update existing item
