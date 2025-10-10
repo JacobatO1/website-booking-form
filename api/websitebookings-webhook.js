@@ -147,11 +147,11 @@ module.exports = async (req, res) => {
 
 // Use a cleaner function to handle all necessary escapes for GraphQL string arguments
 const escapeGraphQLString = (str) => {
-    if (!str) return "";
-    return str
-        .replace(/"/g, '\\"')   // Escape double quotes
-        .replace(/\//g, '\\\\/')   // ADDED: Escape forward slashes
-        .replace(/\n/g, '\\n'); // Optional but recommended: Escape newlines
+  if (!str) return "";
+  return str
+    .replace(/\\/g, "\\\\")   // Escape backslashes first
+    .replace(/"/g, '\\"')     // Escape double quotes
+    .replace(/\n/g, "\\n");   // Escape newlines (optional)
 };
 
 // Apply escaping to your dynamic data
