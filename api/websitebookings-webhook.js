@@ -119,14 +119,25 @@ module.exports = async (req, res) => {
 
     Object.keys(columnValues).forEach((key) => columnValues[key] == null && delete columnValues[key]);
 
-    // --- Step 1: Search for existing item ---
-    const searchQuery = `
-      query ($boardId: Int!, $itemName: String!) {
-        items_page_by_column_values(board_id: $boardId, column_id: "name", column_value: $itemName) {
-          items { id }
+    // --- Step 1: Search for existing item --- (Updated for new Monday API schema)
+const searchQuery = `
+  query {
+    items_page_by_column_values(
+      board_id: ${boardId},
+      columns: [
+        {
+          column_id: "name",
+          column_values: ["${escapedItemName}"]
         }
+      ],
+      limit: 1
+    ) {
+      items {
+        id
       }
-    `;
+    }
+  }
+`;
 
     const searchData = await mondayCall(searchQuery, {
       boardId,
