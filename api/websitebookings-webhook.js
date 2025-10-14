@@ -152,7 +152,7 @@ const searchQuery = `
     // --- Step 2: Create or Update ---
     if (existingItem) {
       const updateQuery = `
-        mutation ($boardId: Int!, $itemId: Int!, $columnValues: JSON!) {
+        mutation ($boardId: ID!, $itemId: String!, $columnValues: JSON!) {
           change_column_values(board_id: $boardId, item_id: $itemId, column_values: $columnValues) {
             id
           }
@@ -169,7 +169,7 @@ const searchQuery = `
       return res.status(200).json({ message: "✅ Updated existing item", id: existingItem.id });
     } else {
       const createQuery = `
-        mutation ($boardId: Int!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
+        mutation ($boardId: ID!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
           create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName, column_values: $columnValues) {
             id
           }
