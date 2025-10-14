@@ -120,14 +120,24 @@ module.exports = async (req, res) => {
     Object.keys(columnValues).forEach((key) => columnValues[key] == null && delete columnValues[key]);
 
     // --- Step 1: Search for existing item --- (Updated for new Monday API schema)
+// Escape double quotes and backslashes in the item name to avoid GraphQL syntax errors
+const escapedItemName = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
 const searchQuery = `
-  query ($boardId: Int!, $itemName: String!) {
+  query {
     items_page_by_column_values(
-      board_id: $boardId,
-      columns: [{ column_id: "name", column_values: [$itemName] }],
+      board_id: ${boardId},
+      columns: [
+        {
+          column_id: "name",
+          column_values: ["${escapedItemName}"]
+        }
+      ],
       limit: 1
     ) {
-      items { id }
+      items {
+        id
+      }
     }
   }
 `;
