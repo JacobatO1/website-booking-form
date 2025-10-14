@@ -121,20 +121,13 @@ module.exports = async (req, res) => {
 
     // --- Step 1: Search for existing item --- (Updated for new Monday API schema)
 const searchQuery = `
-  query {
+  query ($boardId: Int!, $itemName: String!) {
     items_page_by_column_values(
-      board_id: ${boardId},
-      columns: [
-        {
-          column_id: "name",
-          column_values: ["${ItemName}"]
-        }
-      ],
+      board_id: $boardId,
+      columns: [{ column_id: "name", column_values: [$itemName] }],
       limit: 1
     ) {
-      items {
-        id
-      }
+      items { id }
     }
   }
 `;
