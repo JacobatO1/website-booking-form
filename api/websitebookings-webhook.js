@@ -127,7 +127,7 @@ const searchQuery = `
       columns: [
         {
           column_id: "name",
-          column_values: ["${escapedItemName}"]
+          column_values: ["${ItemName}"]
         }
       ],
       limit: 1
