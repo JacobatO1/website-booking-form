@@ -1,13 +1,12 @@
 // --- CONFIGURATION CONSTANTS ---
-
 const MONDAY_API_KEY = process.env.MONDAY_FRANCHISE_API_KEY;
 
-const MAIN_BOARD_ID = "2046517792"; // must be string, not number
+const MAIN_BOARD_ID = 2046517792;
 const MONDAY_GROUP_ID = "topics";
 
 const FRANCHISEE_BOARDS = {
-  "Franchisee A": "1234567890",
-  "Franchisee B": "9876543210",
+  "Franchisee A": 1234567890,
+  "Franchisee B": 9876543210,
 };
 
 // --- HELPER FUNCTION ---
@@ -25,12 +24,10 @@ const mondayCall = async (query, variables = {}) => {
   });
 
   const data = await response.json();
-
   if (data.errors) {
     console.error("❌ Monday API returned errors:", JSON.stringify(data.errors, null, 2));
     throw new Error(`Monday API Error: ${data.errors[0].message}`);
   }
-
   return data;
 };
 
@@ -48,7 +45,7 @@ module.exports = async (req, res) => {
     const submission = req.body;
     console.log("👉 Raw submission received:", submission);
 
-    // --- Extract relevant Cognito fields ---
+    // Extract relevant Cognito fields
     const {
       BookingReference,
       JobDate,
@@ -76,11 +73,12 @@ module.exports = async (req, res) => {
     const itemName = `${BookingReference}`;
     let boardId = MAIN_BOARD_ID;
 
-    // --- Determine target board ---
     const franchiseeAnswer =
       typeof AreYouAFranchiseeBookingOnBehalfOfTheAgent === "string"
         ? AreYouAFranchiseeBookingOnBehalfOfTheAgent.toLowerCase()
-        : AreYouAFranchiseeBookingOnBehalfOfTheAgent?.Choice?.toLowerCase() || "no";
+        : AreYouAFranchiseeBookingOnBehalfOfTheAgent === true
+        ? "yes"
+        : "no";
 
     if (franchiseeAnswer === "yes" && JobBookedOnBehalfOfTheAgentBy) {
       const franchiseeName = JobBookedOnBehalfOfTheAgentBy.trim();
@@ -91,12 +89,14 @@ module.exports = async (req, res) => {
       }
     }
 
-    // --- Prepare Monday column values ---
+    // Prepare Monday column values
     const columnValues = {
       date_mkvmvx73: { date: JobDate },
-      text_mkvmjq0e: [PropertyAddress?.Line1, PropertyAddress?.City, PropertyAddress?.PostalCode]
-        .filter(Boolean)
-        .join(", "),
+      text_mkvmjq0e: [
+        PropertyAddress?.Line1,
+        PropertyAddress?.City,
+        PropertyAddress?.PostalCode,
+      ].filter(Boolean).join(", "),
       color_mkvmxaw7: { label: EstateAgency },
       text_mkvn2yd1: EstateAgency2 || "",
       color_mkvta8zc: { label: BookingType },
@@ -105,7 +105,7 @@ module.exports = async (req, res) => {
       date_mkvna7n0: PropertyAvailableDate ? { date: PropertyAvailableDate } : null,
       date_mkvn9hrb: StartOfTenancy ? { date: StartOfTenancy } : null,
       numbers23: Id?.toString() || "",
-      text_mkvn7ezz: { text: Comments || "" },
+      text_mkvn7ezz: Comments || "",
       text_mkvnwr1x: AgentsName,
       email_mkvnbepp: { email: AgentsEmail, text: AgentsEmail },
       text_mkvnw80g: LettingType,
@@ -116,37 +116,36 @@ module.exports = async (req, res) => {
       color_mkvmmvy7: JobBookedOnBehalfOfTheAgentBy,
     };
 
-    // remove nulls / empty keys
     Object.keys(columnValues).forEach((key) => columnValues[key] == null && delete columnValues[key]);
 
     // --- Step 1: Search for existing item ---
     const escapedItemName = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-
     const searchQuery = `
-      query ($boardId: ID!, $itemName: String!) {
+      query {
         items_page_by_column_values(
-          board_id: $boardId,
+          board_id: ${boardId},
           columns: [
-            { column_id: "name", column_values: [$itemName] }
+            {
+              column_id: "name",
+              column_values: ["${escapedItemName}"]
+            }
           ],
           limit: 1
         ) {
-          items { id }
+          items {
+            id
+          }
         }
       }
     `;
 
-    const searchData = await mondayCall(searchQuery, {
-      boardId: boardId.toString(),
-      itemName: escapedItemName,
-    });
-
+    const searchData = await mondayCall(searchQuery);
     const existingItem = searchData?.data?.items_page_by_column_values?.items?.[0];
 
     // --- Step 2: Create or Update ---
     if (existingItem) {
       const updateQuery = `
-        mutation ($boardId: ID!, $itemId: ID!, $columnValues: JSON!) {
+        mutation ($boardId: ID!, $itemId: String!, $columnValues: JSON!) {
           change_column_values(board_id: $boardId, item_id: $itemId, column_values: $columnValues) {
             id
           }
@@ -154,42 +153,31 @@ module.exports = async (req, res) => {
       `;
 
       const updateData = await mondayCall(updateQuery, {
-        boardId: boardId.toString(),
-        itemId: existingItem.id,
-        columnValues,
+        boardId,
+        itemId: parseInt(existingItem.id),
+        columnValues: JSON.stringify(columnValues), // ✅ FIXED HERE
       });
 
       console.log("✏️ Updated existing item:", updateData.data.change_column_values.id);
-      return res.status(200).json({
-        message: "✅ Updated existing item",
-        id: existingItem.id,
-      });
+      return res.status(200).json({ message: "✅ Updated existing item", id: existingItem.id });
     } else {
       const createQuery = `
         mutation ($boardId: ID!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
-          create_item(
-            board_id: $boardId,
-            group_id: $groupId,
-            item_name: $itemName,
-            column_values: $columnValues
-          ) {
+          create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName, column_values: $columnValues) {
             id
           }
         }
       `;
 
       const createData = await mondayCall(createQuery, {
-        boardId: boardId.toString(),
+        boardId,
         groupId: MONDAY_GROUP_ID,
         itemName,
-        columnValues,
+        columnValues: JSON.stringify(columnValues), // ✅ FIXED HERE
       });
 
       console.log("➕ Created new item:", createData.data.create_item.id);
-      return res.status(200).json({
-        message: "✅ Created new item",
-        id: createData.data.create_item.id,
-      });
+      return res.status(200).json({ message: "✅ Created new item", id: createData.data.create_item.id });
     }
   } catch (error) {
     console.error("❌ Fatal Webhook Error:", error);
