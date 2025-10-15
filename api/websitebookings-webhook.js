@@ -5,8 +5,8 @@ const MAIN_BOARD_ID = 2046517792;
 const MONDAY_GROUP_ID = "topics";
 
 const FRANCHISEE_BOARDS = {
-  "Franchisee A": 1234567890,
-  "Franchisee B": 9876543210,
+  "Franchisee A": ,
+  "Franchisee B": ,
 };
 
 // --- HELPER FUNCTION ---
@@ -18,7 +18,7 @@ const mondayCall = async (query, variables = {}) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: MONDAY_API_KEY,
+      Authorization: process.env.MONDAY_FRANCHISE_API_KEY,
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -28,7 +28,7 @@ const mondayCall = async (query, variables = {}) => {
     console.error("❌ Monday API returned errors:", JSON.stringify(data.errors, null, 2));
     throw new Error(`Monday API Error: ${data.errors[0].message}`);
   }
-  return data;
+  return data.data;
 };
 
 // --- MAIN HANDLER ---
@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
 
   try {
     const submission = req.body;
-    console.log("👉 Raw submission received:", submission);
+    console.log("👉 Raw submission received:");
 
     // Extract relevant Cognito fields
     const {
@@ -118,31 +118,35 @@ module.exports = async (req, res) => {
 
     Object.keys(columnValues).forEach((key) => columnValues[key] == null && delete columnValues[key]);
 
-    // --- Step 1: Search for existing item ---
-    const escapedItemName = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    const searchQuery = `
-      query {
-        items_page_by_column_values(
-          board_id: ${boardId},
-          columns: [
-            {
-              column_id: "name",
-              column_values: ["${escapedItemName}"]
-            }
-          ],
-          limit: 1
-        ) {
-          items {
-            id
-          }
-        }
-      }
-    `;
+   // --- Step 1: Search for existing item ---
+// NOTE: Escaping is still required here because Monday's search argument is a string!
+const escapedItemName = itemName.replace(/"/g, '\\"').replace(/'/g, "\\'"); 
+// The simpler escape is usually enough for item_name searches.
 
-    const searchData = await mondayCall(searchQuery);
-    const existingItem = searchData?.data?.items_page_by_column_values?.items?.[0];
+const searchQuery = `
+  query ($boardId: ID!, $columnValue: String!) {
+    items_page_by_column_values(
+      board_id: $boardId,
+      column_id: "name",
+      column_value: $columnValue,
+      limit: 1
+    ) {
+      items {
+        id
+      }
+    }
+  }
+`;
+
+    const searchData = await mondayCall(searchQuery, {
+      boardId,
+      columnValue: itemName, // itemName is passed directly as a variable string! No escaping needed here.
+    });
+    const existingItem = searchData?.items_page_by_column_values?.items?.[0];
 
     // --- Step 2: Create or Update ---
+    const columnValuesJson = JSON.stringify(columnValues); // Stringify once here
+    
     if (existingItem) {
       const updateQuery = `
         mutation ($boardId: ID!, $itemId: String!, $columnValues: JSON!) {
@@ -153,12 +157,12 @@ module.exports = async (req, res) => {
       `;
 
       const updateData = await mondayCall(updateQuery, {
-        boardId,
+        boardId: boardId,
         itemId: parseInt(existingItem.id),
-        columnValues: JSON.stringify(columnValues), // ✅ FIXED HERE
+        columnValues: columnValuesJson,
       });
 
-      console.log("✏️ Updated existing item:", updateData.data.change_column_values.id);
+      console.log("✏️ Updated existing item:", updateData.change_column_values.id);
       return res.status(200).json({ message: "✅ Updated existing item", id: existingItem.id });
     } else {
       const createQuery = `
@@ -170,14 +174,14 @@ module.exports = async (req, res) => {
       `;
 
       const createData = await mondayCall(createQuery, {
-        boardId,
+        boardId: boardId,
         groupId: MONDAY_GROUP_ID,
-        itemName,
-        columnValues: JSON.stringify(columnValues), // ✅ FIXED HERE
+        itemName: itemName, // ItemName is passed directly as a string variable
+        columnValues: columnValuesJson,
       });
 
-      console.log("➕ Created new item:", createData.data.create_item.id);
-      return res.status(200).json({ message: "✅ Created new item", id: createData.data.create_item.id });
+      console.log("➕ Created new item:", createData.create_item.id);
+      return res.status(200).json({ message: "✅ Created new item", id: createData.create_item.id });
     }
   } catch (error) {
     console.error("❌ Fatal Webhook Error:", error);
