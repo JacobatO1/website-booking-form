@@ -5,8 +5,8 @@ const MAIN_BOARD_ID = 2046517792;
 const MONDAY_GROUP_ID = "topics";
 
 const FRANCHISEE_BOARDS = {
-  "Franchisee A": ,
-  "Franchisee B": ,
+  "Franchisee A": 0,
+  "Franchisee B": 0,
 };
 
 // --- HELPER FUNCTION ---
