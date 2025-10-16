@@ -47,9 +47,12 @@ const mondayCall = async (query, variables = {}) => {
 // Utility function to correctly escape characters for GraphQL literal string insertion
 const escapeGraphQLStringLiteral = (str) => {
     if (!str) return "";
-    // Replaces / with \/ (GraphQL escape sequence)
-    // Replaces " with \" (GraphQL escape sequence)
-    return str.replace(/"/g, '\\"').replace(/\//g, '\\/'); 
+    
+    // 1. Escape Double Quotes: " -> \" 
+    // 2. Escape Forward Slash: / -> \\/ (Ensures the GraphQL parser sees a literal backslash before the slash)
+    return str
+        .replace(/"/g, '\\"') 
+        .replace(/\//g, '\\\\/'); // <--- CORRECTED: FOUR backslashes
 };
 
 // --- MAIN HANDLER ---
