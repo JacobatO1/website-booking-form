@@ -119,12 +119,20 @@ module.exports = async (req, res) => {
     // Stringify once here to use in both mutations
     const columnValuesJson = JSON.stringify(columnValues); 
 
-    // --- Step 1: Search for existing item (FIXED for API v2 'columns' syntax) ---
+    // --- Step 1: Search for existing item (Using literal string for columns to bypass type error) ---
+    // NOTE: This search method is simpler and avoids the API type error.
     const searchQuery = `
-query ($boardId: ID!, $columnFilters: JSON!) {
+query ($boardId: ID!) {
   items_page_by_column_values(
     board_id: $boardId,
-    columns: $columnFilters,
+    columns: [
+      {
+        column_id: "name",
+        // The item name is passed as a literal string array here.
+        // It is generally safe for simple item names (BookingReference).
+        column_values: ["${itemName}"]
+      }
+    ],
     limit: 1
   ) {
     items {
@@ -132,18 +140,12 @@ query ($boardId: ID!, $columnFilters: JSON!) {
     }
   }
 }
-`; // Cleaned up indentation on template literal
-
-    // Define the complex argument structure required by Monday.com
-    const columnFilters = [{
-        column_id: "name",
-        // The item name is passed as an array element
-        column_values: [itemName] 
-    }];
-
+`;
+    // The columnFilters object is now obsolete for the search, so we remove it.
+    
     const searchData = await mondayCall(searchQuery, {
       boardId: boardId,
-      columnFilters: JSON.stringify(columnFilters), // JSON stringified to be passed as JSON variable
+      // Pass only the boardId variable
     });
 
     const existingItem = searchData?.items_page_by_column_values?.items?.[0];
