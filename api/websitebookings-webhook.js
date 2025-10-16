@@ -44,6 +44,12 @@ const mondayCall = async (query, variables = {}) => {
   return data.data; 
 };
 
+// Utility function to escape the forward slash in string interpolation
+const escapeSearchString = (str) => {
+    if (!str) return "";
+    // Replaces / with // (GraphQL escape sequence)
+    return str.replace(/\//g, '\\/'); 
+};
 // --- MAIN HANDLER ---
 module.exports = async (req, res) => {
   if (!MONDAY_API_KEY) {
@@ -117,7 +123,10 @@ module.exports = async (req, res) => {
     Object.keys(columnValues).forEach((key) => columnValues[key] == null && delete columnValues[key]);
     
     // Stringify once here to use in both mutations
-    const columnValuesJson = JSON.stringify(columnValues); 
+    const columnValuesJson = JSON.stringify(columnValues);
+
+    // **ESCAPE THE ITEM NAME ONLY FOR THE SEARCH QUERY**
+    const escapedItemName = escapeSearchString(itemName);
 
     // --- Step 1: Search for existing item (Using literal string for columns to bypass type error) ---
     // NOTE: This search method is simpler and avoids the API type error.
@@ -130,7 +139,7 @@ query ($boardId: ID!) {
         column_id: "name",
         // The item name is passed as a literal string array here.
         // It is generally safe for simple item names (BookingReference).
-        column_values: ["${itemName}"]
+        column_values: ["${escapedItemName}"]
       }
     ],
     limit: 1
