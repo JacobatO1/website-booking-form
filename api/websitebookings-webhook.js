@@ -10,19 +10,6 @@ const FRANCHISEE_BOARDS = {
     "Franchisee B": 0,
 };
 
-// Utility function to correctly escape characters for GraphQL literal string insertion
-// This aggressively escapes the slash and quote for the Search Query, which uses string interpolation.
-const escapeGraphQLStringLiteral = (str) => {
-    if (!str) return "";
-    
-    // The aggressive four backslashes (\\\\) ensures the GraphQL parser sees \\/ 
-    // which is often required in complex environments.
-    return str
-        .replace(/"/g, '\\"') 
-        .replace(/\//g, '\\\\/');
-};
-
-
 // --- HELPER FUNCTION FOR MONDAY API CALLS ---
 /**
  * Executes a GraphQL query/mutation against the monday.com API using variables.
@@ -126,30 +113,25 @@ module.exports = async (req, res) => {
 
         // --- Step 1: Search for existing item (Uses literal string for 'columns' to bypass API type error) ---
         const searchQuery = `
-query ($boardId: ID!) {
-  items_page_by_column_values(
-    board_id: $boardId,
-    columns: [
-      {
-        column_id: "name",
-        // This is the variable insertion point requiring escaping
-        column_values: ["${escapedItemName}"]
-      }
-    ],
-    limit: 1
-  ) {
-    items {
-      id
-    }
-  }
-}
-`;
-
-        const searchData = await mondayCall(searchQuery, {
-            boardId: boardId,
-        });
-
-        const existingItem = searchData?.items_page_by_column_values?.items?.[0];
+  query ($boardId: ID!, $itemName: String!) 
+  {
+	items_page_by_column_values(
+	  board_id:$boardId,                                              
+      columns: [ 
+	  {
+	   column_id:"name",                                                                                                                                                                                   column_values:[$itemName]                                                                                                                                                                           
+      }],                                                                                                                                                                                                  
+      limit: 1                                                                                                                                                                                                    
+    ) {                                                                                                                                                                                                      
+      items {                                                                                                                                                                                                    
+        id                                                                                                                                                                                                 
+      }                                                                                                                                                                                                    
+    }                                                                                                                                                                                                      
+  }`;
+  const searchData = await mondayCall(searchQuery, {
+      boardId: boardId,
+      itemName: itemName,  // No escaping needed!                                                                                                                                                                                
+  });
 
         // --- Step 2: Create or Update (Uses JSON Variables for complex data - FIXES initial slash errors) ---
         if (existingItem) {
