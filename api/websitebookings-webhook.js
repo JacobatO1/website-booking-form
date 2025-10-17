@@ -108,9 +108,6 @@ module.exports = async (req, res) => {
         // Stringify once here to use in both mutations
         const columnValuesJson = JSON.stringify(columnValues); 
 
-        // Apply escaping specifically for the search query to fix the Syntax Error
-        const escapedItemName = escapeGraphQLStringLiteral(itemName);
-
         // --- Step 1: Search for existing item (Uses literal string for 'columns' to bypass API type error) ---
         const searchQuery = `
   query ($boardId: ID!, $itemName: String!) 
