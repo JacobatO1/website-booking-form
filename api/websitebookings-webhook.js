@@ -2,7 +2,7 @@
 const MONDAY_API_KEY = process.env.MONDAY_FRANCHISE_API_KEY;
 
 const MAIN_BOARD_ID = 2046517792;
-const MONDAY_GROUP_ID = "topics";
+const MONDAY_GROUP_ID = "new_group29179";
 
 // IMPORTANT: Replace '0' with actual Monday Board IDs (numbers) to use this feature
 const FRANCHISEE_BOARDS = {
