@@ -129,20 +129,16 @@ module.exports = async (req, res) => {
       boardId: boardId,
       itemName: itemName,  // No escaping needed!                                                                                                                                                                                
   });
-
 		const existingItem = searchData?.items_page_by_column_values?.items?.[0];
+		console.log("DEBUG: existingItem is", typeof existingItem);
 
-        // --- Step 2: Create or Update (Uses JSON Variables for complex data - FIXES initial slash errors) ---
         if (existingItem) {
-            // 4a. Update existing item
-            const updateQuery = `
-mutation ($boardId: ID!, $itemId: ID!, $columnValues: JSON!) {
-  change_column_values(board_id: $boardId, item_id: $itemId, column_values: $columnValues) {
-    id
-  }
-}
-`;
-
+            console.log("🔍 Found existing item:", existingItem.id);
+            // update logic...
+        } else {
+            console.log("🆕 No existing item found, creating new one.");
+            // create logic...
+        }
             const updateData = await mondayCall(updateQuery, {
                 boardId: boardId,
                 itemId: parseInt(existingItem.id), 
