@@ -130,6 +130,8 @@ module.exports = async (req, res) => {
       itemName: itemName,  // No escaping needed!                                                                                                                                                                                
   });
 
+		const existingItem = searchData?.items_page_by_column_values?.items?.[0];
+
         // --- Step 2: Create or Update (Uses JSON Variables for complex data - FIXES initial slash errors) ---
         if (existingItem) {
             // 4a. Update existing item
