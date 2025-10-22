@@ -113,43 +113,48 @@ module.exports = async (req, res) => {
 
         const existingItem = searchData?.items_page_by_column_values?.items?.[0];
 
-        if (existingItem) {
-            const updateQuery = `
-            mutation ($boardId: ID!, $itemId: ID!, $columnValues: JSON!) {
-                change_column_values(board_id: $boardId, item_id: $itemId, column_values: $columnValues) {
-                    id
-                }
-            }`;
+        try {
+            if (existingItem) {
+                const updateQuery = `
+                mutation ($boardId: ID!, $itemId: ID!, $columnValues: JSON!) {
+                    change_column_values(board_id: $boardId, item_id: $itemId, column_values: $columnValues) {
+                        id
+                    }
+                }`;
 
-            const updateData = await mondayCall(updateQuery, {
-                boardId: boardId,
-                itemId: parseInt(existingItem.id),
-                columnValues: columnValuesJson,
-            });
+                const updateData = await mondayCall(updateQuery, {
+                    boardId: boardId,
+                    itemId: parseInt(existingItem.id),
+                    columnValues: columnValuesJson,
+                });
 
-            console.log("✏️ Updated existing item:", updateData.change_column_values.id);
-            return res.status(200).json({ message: "✅ Updated existing item", id: existingItem.id });
-        } else {
-            const createQuery = `
-            mutation ($boardId: ID!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
-                create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName, column_values: $columnValues) {
-                    id
-                }
-            }`;
+                console.log("✏️ Updated existing item:", updateData.change_column_values.id);
+                return res.status(200).json({ message: "✅ Updated existing item", id: existingItem.id });
+            } else {
+                const createQuery = `
+                mutation ($boardId: ID!, $groupId: String!, $itemName: String!, $columnValues: JSON!) {
+                    create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName, column_values: $columnValues) {
+                        id
+                    }
+                }`;
 
-            const createData = await mondayCall(createQuery, {
-                boardId: boardId,
-                groupId: MONDAY_GROUP_ID,
-                itemName: itemName,
-                columnValues: columnValuesJson,
-            });
+                const createData = await mondayCall(createQuery, {
+                    boardId: boardId,
+                    groupId: MONDAY_GROUP_ID,
+                    itemName: itemName,
+                    columnValues: columnValuesJson,
+                });
 
-            console.log("➕ Created new item:", createData.create_item.id);
-            return res.status(200).json({ message: "✅ Created new item", id: createData.create_item.id });
+                console.log("➕ Created new item:", createData.create_item.id);
+                return res.status(200).json({ message: "✅ Created new item", id: createData.create_item.id });
+            }
+        } catch (error) {
+            console.error("❌ Fatal Webhook Error (create/update):", error);
+            return res.status(500).json({ error: error.message });
         }
 
     } catch (error) {
-        console.error("❌ Fatal Webhook Error:", error);
+        console.error("❌ Fatal Webhook Error (outer):", error);
         return res.status(500).json({ error: error.message });
     }
 };
